@@ -1,0 +1,11 @@
+[client]
+showSidebarNavigation = false
+
+[server]
+maxUploadSize = 15
+runOnSave = true
+
+[theme]
+primaryColor = "#3F7D58"
+backgroundColor = "#FFFDF6"
+secondaryBackgroundColor = "#DDEB9D"
