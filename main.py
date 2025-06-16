@@ -1,43 +1,186 @@
-from streamlit import secrets as ss
+from streamlit import session_state as ss
+from streamlit import secrets as sc
+from datetime import datetime
 import streamlit as st
+import pandas as pd
+import random
+import time
+import os
+
+# Import all of the function from the module
+from module import WebScraper, StockSharesAIAgent, StockNewsEmbeddingSystem
 
 
-st.markdown('### Agent AI Laporan Keuangan Persusahaan')
+# Initialize pathing
+ws_path = os.getcwd()
+data_dir = os.path.join(ws_path, 'dataset')
+db_path = os.path.join(ws_path, 'chroma_db')
 
+# Initialize embedding system
+collection_name='stock_news'
+
+# Page configuration
+st.set_page_config(
+    page_title='AWU Stock Shares AI Agent',
+    page_icon='🤖',
+    layout='wide',
+    initial_sidebar_state='expanded'
+)
+
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .chat-message {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .user-message {
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+    }
+    .bot-message {
+        background-color: #f1f8e9;
+        border-left: 4px solid #4caf50;
+    }
+    .stButton > button {
+        background-color: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+    }
+    .dataset-card {
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        background-color: #f9f9f9;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Initialize session state
+if 'messages' not in ss:
+    ss.messages = []
+
+# Sidebar for configuration and dataset scraping
+with st.sidebar:
+    st.title('🛠️ Configuration')
+    
+    # AI Model Settings
+    st.subheader('AI Settings')
+    model_type = st.selectbox(
+        'Select AI Model',
+        ['o4-mini-2025-04-16'],
+        index=0
+    )
+    
+    max_tokens = st.slider('Max Tokens', 100, 4000, 1000, 100)
+    
+    st.divider()
+    
+    # Dataset Scraping Section
+    st.subheader('📊 Dataset Scraping')
+    
+    start_date = st.date_input('Start Date')
+    days_periods = st.slider(
+        'Days Periods', min_value=1, max_value=90, value=7, format='%d Days'
+    )
+
+    if st.button('🔍 Start Scraping') and start_date:
+        Scraper = WebScraper(data_dir=data_dir)
+        Scraper.set_periods(start_date, days_periods)
+
+        with st.spinner('Scraping in progress, please wait...'):
+            Scraper.start_scraping()
+
+            st.toast('Scraping success! Dataset has been saved', icon='✔')
+            
+        Scraper.get_csv()
+
+# Main chat interface
+st.title('🤖 AWU Stock Shares AI Agent')
+st.markdown(
+    'Welcome to your AI-powered assistant with dataset analysis capabilities!'
+)
+
+# Chat history
+chat_container = st.container()
+
+with chat_container:
+    for message in ss.messages:
+        with st.chat_message(message['role']):
+            st.markdown(message['content'])
+
+# Chat input
+if prompt := st.chat_input('Ask me anything or analyze your scraped data...'):
+    # Add user message
+    ss.messages.append({'role': 'user', 'content': prompt})
+    
+    with st.chat_message('user'):
+        st.markdown(prompt)
+    
+    # Generate AI response
+    with st.chat_message('assistant'):
+        with st.spinner('Thinking...'):
+            Agent = StockSharesAIAgent(
+                model_name=model_type,
+                persist_directory=db_path,
+                collection_name=collection_name,
+                max_tokens=max_tokens
+            )
+
+            result = Agent.chat(prompt, ss.messages)
+            response = result['response']
+
+        st.markdown(response)
+        
+        # for i, elem in enumerate(result['sources']): 
+        #     msg = f'{i}: {elem['title']} - {elem['link']}'
+        #     st.markdown(msg)
+
+    # Add assistant response to chat history
+    ss.messages.append({'role': 'assistant', 'content': response})
+
+    # Delete old response
+    if len(ss.messages) > 10:
+        ss.messages = ss.messages[:9]
+
+# Quick actions
 st.divider()
+col1, col2, col3, col4 = st.columns(4)
 
-col1, col2 = st.columns((1, 2))
+with col1:
+    if st.button('🧹 Clear Chat'):
+        ss.messages = []
+        st.rerun()
 
-with col1.container(border=False):
-    url1 = (
-        'https://www.idx.co.id/id/perusahaan-tercatat/' +
-        'laporan-keuangan-dan-tahunan/'
-    )
-    url2 = (
-        'https://www.idx.co.id/id/perusahaan-tercatat/' +
-        'profil-perusahaan-tercatat/'
-    )
+with col2:
+    if st.button('📊 Show Dataset Summary'):
+        if ss.scraped_datasets:
+            st.rerun()
+        else:
+            st.info('No datasets available. Please scrape or upload data first.')
 
-    st.markdown('#### Sumber file laporan keuangan')
+with col3:
+    if st.button('💡 Get Suggestions'):
+        suggestions = [
+            'Try asking me to analyze patterns in your data',
+            'I can help create visualizations from your datasets',
+            "Ask me to compare different datasets you've scraped",
+            'I can identify trends and anomalies in your data'
+        ]
+        suggestion = random.choice(suggestions)
+        ss.messages.append({'role': 'assistant', 'content': suggestion})
+        st.rerun()
 
-    bcol1, bcol2 = st.columns(2)
-    bcol1.link_button('Link 1', url=url1, use_container_width=True)
-    bcol2.link_button('Link 2', url=url2, use_container_width=True)
+with col4:
+    if st.button('🔄 Refresh Interface'):
+        st.rerun()
 
-with col2.container(border=False):
-    st.markdown('#### Unggah file laporan keuangan')
-    st.file_uploader(
-        label='stock_pdf', label_visibility='collapsed', type='pdf'
-    )
-
-st.divider()
-
-tabs_name = ('Rangkuman', 'Potensi', 'Risiko')
-tabs = st.tabs(tabs_name)
-
-with tabs[0]:
-    st.write(
-        '''
-    Saham PT Indosat Tbk (ISAT) anjlok tajam usai merilis laporan keuangan 2024 pada Senin (10/2), dengan harga turun 13,06 persen dari pembukaan di 2.220 ke 1.930 per lembar menjelang penutupan perdagangan. Penurunan signifikan terjadi setelah sesi I, ketika harga masih di 2.200 lalu melorot agresif hingga 1.965 dan akhirnya 1.930. Kondisi ini memicu diskusi hangat di forum Stockbit, di mana investor terbagi antara bertahan, cut loss, atau membeli saat harga turun meski laba tahunan ISAT meningkat.
-'''
-    )
+# Footer
+st.markdown('---')
+st.markdown('**AWU Stock Shares AI Agent** - Powered by Streamlit | Build intelligent data-driven conversations')
