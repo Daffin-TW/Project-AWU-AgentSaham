@@ -26,9 +26,18 @@ with col1.container(border=False):
 
 with col2.container(border=False):
     st.markdown('#### Unggah file laporan keuangan')
-    st.file_uploader(label='stock_pdf', label_visibility='collapsed')
+    st.file_uploader(
+        label='stock_pdf', label_visibility='collapsed', type='pdf'
+    )
 
 st.divider()
 
-tabs = ('Rangkuman', 'Potensi', 'Risiko')
-st.tabs(tabs)
+tabs_name = ('Rangkuman', 'Potensi', 'Risiko')
+tabs = st.tabs(tabs_name)
+
+with tabs[0]:
+    st.write(
+        '''
+    Saham PT Indosat Tbk (ISAT) anjlok tajam usai merilis laporan keuangan 2024 pada Senin (10/2), dengan harga turun 13,06 persen dari pembukaan di 2.220 ke 1.930 per lembar menjelang penutupan perdagangan. Penurunan signifikan terjadi setelah sesi I, ketika harga masih di 2.200 lalu melorot agresif hingga 1.965 dan akhirnya 1.930. Kondisi ini memicu diskusi hangat di forum Stockbit, di mana investor terbagi antara bertahan, cut loss, atau membeli saat harga turun meski laba tahunan ISAT meningkat.
+'''
+    )
