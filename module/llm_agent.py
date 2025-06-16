@@ -12,12 +12,11 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
-from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import create_retrieval_chain
 from langchain_openai import ChatOpenAI
 
 # Import the embedding system from the previous file
-from embedding import StockNewsEmbeddingSystem
+from module import StockNewsEmbeddingSystem
 
 class StockSharesAIAgent:
     def __init__(
@@ -58,14 +57,6 @@ class StockSharesAIAgent:
             )
 
             self.embedding_system.load_existing_vectorstore()
-        
-        # Initialize conversation memory
-        self.memory = ConversationBufferWindowMemory(
-            k=10,  # Remember last 10 exchanges
-            return_messages=True,
-            memory_key='chat_history',
-            output_key='answer'
-        )
         
         # Agent personality and instructions
         self.system_prompt = self.create_system_prompt()
@@ -170,23 +161,21 @@ class StockSharesAIAgent:
             self.rag_chain = None
     
     # Main chat interface for the AI agent
-    def chat(self, user_input: str, use_rag: bool = True) -> Dict[str, Any]:
+    def chat(
+            self, user_input: str,
+            chat_history, 
+            use_rag: bool = True
+        ) -> Dict[str, Any]:
         try:
             if use_rag and self.rag_chain:
                 # Use RAG chain for enhanced responses
                 response = self.rag_chain.invoke({
                     'input': user_input,
-                    'chat_history': self.memory.chat_memory.messages
+                    'chat_history': chat_history
                 })
                 
                 answer = response['answer']
                 source_documents = response.get('context', [])
-                
-                # Save to memory
-                self.memory.save_context(
-                    {'input': user_input},
-                    {'answer': answer}
-                )
                 
                 return {
                     'response': answer,
@@ -200,18 +189,11 @@ class StockSharesAIAgent:
                 # Direct LLM response without RAG
                 messages = [
                     SystemMessage(content=self.system_prompt),
-                    *self.memory.chat_memory.messages,
                     HumanMessage(content=user_input)
                 ]
                 
                 response = self.llm.invoke(messages)
                 answer = response.content
-                
-                # Save to memory
-                self.memory.save_context(
-                    {'input': user_input},
-                    {'answer': answer}
-                )
                 
                 return {
                     'response': answer,
@@ -323,23 +305,6 @@ class StockSharesAIAgent:
             'sources': result['sources'],
             'timestamp': datetime.now().isoformat()
         }
-    
-    # Clear conversation memory
-    def clear_memory(self):
-        self.memory.clear()
-        print('Conversation memory cleared.')
-    
-    # Get conversation history
-    def get_conversation_history(self) -> List[Dict[str, str]]:
-        history = []
-        for message in self.memory.chat_memory.messages:
-            if isinstance(message, HumanMessage):
-                history.append({'role': 'user', 'content': message.content})
-            elif isinstance(message, AIMessage):
-                history.append(
-                    {'role': 'assistant', 'content': message.content}
-                )
-        return history
     
 
 def main():
