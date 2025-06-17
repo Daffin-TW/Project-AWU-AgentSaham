@@ -1,3 +1,132 @@
+#!/usr/bin/python3
+
+from streamlit import session_state as ss
+from streamlit import secrets as sc
+import streamlit as st
+import os
+
+
+# Initialize pathing
+ws_path = os.getcwd()
+data_dir = os.path.join(ws_path, 'dataset')
+db_path = os.path.join(ws_path, 'chroma_db')
+
+# Page configuration
+st.set_page_config(
+    page_title='AWU Agen AI Saham',
+    page_icon='🤖',
+    layout='wide',
+    initial_sidebar_state='expanded'
+)
+
+# Initialize session state
+if 'messages' not in ss:
+    ss.messages = []
+
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .chat-message {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .user-message {
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+    }
+    .bot-message {
+        background-color: #f1f8e9;
+        border-left: 4px solid #4caf50;
+    }
+    .stButton > button {
+        background-color: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+    }
+    .dataset-card {
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        background-color: #f9f9f9;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Sidebar for configuration and dataset scraping
+with st.sidebar:
+    st.title('🛠️ Konfigurasi')
+    
+    # AI Model Settings
+    st.subheader('Pengaturan AI')
+    model_type = st.selectbox(
+        'Pilih model AI',
+        ['o4-mini-2025-04-16'],
+        index=0
+    )
+    
+    max_tokens = st.slider('Max Tokens', 100, 4000, 1000, 100)
+
+# Main chat interface
+st.title('🤖 AWU Agen AI Saham')
+st.markdown("""
+    Selamat datang di asisten AI Anda yang dilengkapi dengan
+    kemampuan analisis berita saham dan kripto terbaru!
+""")
+
+# Chat element
+chat_container = st.container()
+
+with chat_container:
+    with st.chat_message('user'):
+        st.markdown('Hello')
+
+# Chat input
+msg = (
+    'Tanyakan apa saja kepada saya atau analisis data'
+    + 'berita yang telah Anda kumpulkan...'
+)
+
+
+if prompt := st.chat_input(msg):
+    pass
+
+
+# Quick actions
+st.divider()
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    if st.button('🧹 Hapus Chat'):
+        st.rerun()
+
+with col2:
+    if st.button('📊 Rangkuman Data'):
+        st.rerun()
+
+with col3:
+    if st.button('💡 Ide Pertanyaan'):
+        st.rerun()
+
+with col4:
+    if st.button('🔄 Muat Ulang'):
+        st.rerun()
+
+# Footer
+st.divider()
+st.markdown("""
+    **AWU Agen AI Saham** - Dibuat menggunakan Streamlit
+    | Bangun percakapan cerdas berbasis data
+""")
+
+# ==================================================== #
+# OLD
+
 # from streamlit import session_state as ss
 # from streamlit import secrets as sc
 # from datetime import datetime
@@ -26,41 +155,6 @@
 #     layout='wide',
 #     initial_sidebar_state='expanded'
 # )
-
-# # Custom CSS for better styling
-# st.markdown("""
-# <style>
-#     .chat-message {
-#         padding: 1rem;
-#         border-radius: 0.5rem;
-#         margin-bottom: 1rem;
-#         display: flex;
-#         flex-direction: column;
-#     }
-#     .user-message {
-#         background-color: #e3f2fd;
-#         border-left: 4px solid #2196f3;
-#     }
-#     .bot-message {
-#         background-color: #f1f8e9;
-#         border-left: 4px solid #4caf50;
-#     }
-#     .stButton > button {
-#         background-color: #2196f3;
-#         color: white;
-#         border: none;
-#         border-radius: 0.5rem;
-#         padding: 0.5rem 1rem;
-#     }
-#     .dataset-card {
-#         border: 1px solid #ddd;
-#         border-radius: 0.5rem;
-#         padding: 1rem;
-#         margin: 0.5rem 0;
-#         background-color: #f9f9f9;
-#     }
-# </style>
-# """, unsafe_allow_html=True)
 
 # # Initialize session state
 # if 'messages' not in ss:
