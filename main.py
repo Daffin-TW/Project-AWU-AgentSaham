@@ -5,6 +5,9 @@ from streamlit import secrets as sc
 import streamlit as st
 import os
 
+# Import module from custom package
+from module import WebScraper
+
 
 # Initialize pathing
 ws_path = os.getcwd()
@@ -71,6 +74,25 @@ with st.sidebar:
     )
     
     max_tokens = st.slider('Max Tokens', 100, 4000, 1000, 100)
+
+    st.divider()
+    
+    # Dataset Scraping Section
+    st.subheader('📊 Scraping Dataset')
+    
+    start_date = st.date_input('Start Date')
+    days_period = st.slider(
+        'Periode Hari', min_value=1, max_value=90, value=7, format='%d Hari'
+    )
+
+    if st.button('🔍 Mulai Scraping') and start_date:
+        Scraper = WebScraper(
+            start_date=start_date,
+            days_period=days_period,
+            data_dir=data_dir
+        )
+        Scraper.scrap_urls(st_progress=True)
+        Scraper.scrap_from_urls(st_progress=True)
 
 # Main chat interface
 st.title('🤖 AWU Agen AI Saham')
