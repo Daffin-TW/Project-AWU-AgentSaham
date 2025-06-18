@@ -1,5 +1,116 @@
 #!/usr/bin/python3
 
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings
+from sentence_transformers import SentenceTransformer
+from langchain.schema import Document
+from langchain_chroma import Chroma
+from transformers import pipeline
+import pandas as pd
+import os
+
+
+class ChromaEmbeddings():
+    def __init__(
+        self,
+        chunk_size=1000,
+        chunk_overlap=200,
+        persist_directory='./chroma_db',
+        collection_name='stock_news'
+    ):
+        # Construct attributes
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.persist_directory = persist_directory
+        self.collection_name = collection_name
+        
+        # Initialize text splitter for large documents
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len,
+        )
+    
+    # Load stock news data from CSV file
+    def load_csv_data(self, csv_path: str) -> pd.DataFrame:
+        df = pd.read_csv(csv_path)
+        
+        # Validate required columns
+        required_columns = ['date', 'title', 'url', 'text']
+        missing_columns = [
+            col for col in required_columns if col not in df.columns
+        ]
+        
+        if missing_columns:
+            raise ValueError(f'Missing required columns: {missing_columns}')
+        
+        # Clean data
+        df = df.dropna(subset=['date', 'title', 'text'])
+        df['date'] = df['date'].astype(str)
+        df['title'] = df['title'].astype(str)
+        df['text'] = df['text'].astype(str)
+        df['url'] = df['url'].astype(str)
+        
+        print(f'Loaded {len(df)} news articles')
+        return df
+
+def main():
+    file_path = os.path.abspath(__file__)
+    folder_path = os.path.dirname(file_path)
+    ws_path = os.path.dirname(folder_path)
+
+    data_dir = os.path.join(ws_path, 'dataset')
+    os.makedirs(data_dir, exist_ok=True)
+
+    Embeddings = ChromaEmbeddings()
+
+
+
+    # print('Load Model...')
+    # model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
+
+    # sentences_1 = [
+    #     "The dog plays in the garden",
+    #     "The new movie is so great",
+    #     "A woman watches TV",
+    # ]
+
+    # sentences_2 = [
+    #     "The new movie is awesome",
+    #     "The cat sits outside",
+    #     "A man is playing guitar",
+    # ]
+
+    # print('Encode 1...')
+    # embeddings1 = model.encode(sentences_1)
+
+    # print('Encode 2...')
+    # embeddings2 = model.encode(sentences_2)
+
+    # # Compute cosine similarities
+    # similarities = model.similarity(embeddings1, embeddings2)
+
+    # # Output the pairs with their score
+    # for idx_i, sentence1 in enumerate(sentences_1):
+    #     print(sentence1)
+    #     for idx_j, sentence2 in enumerate(sentences_2):
+    #         print(f" - {sentence2: <30}: {similarities[idx_i][idx_j]:.4f}")
+    
+    # summarizer = pipeline("summarization", model="thivh/t5-base-indonesian-summarization-cased-finetuned-indosum")
+
+    # ARTICLE = """Bank Nasional Komersial (NCB), bank terbesar di Arab Saudi berdasarkan aset, telah setuju untuk membeli pesaingnya, Samba Financial Group, seharga $15 miliar dalam merger perbankan terbesar tahun ini. NCB akan membayar 28,45 riyal ($7,58) untuk setiap saham Samba, menurut pernyataan pada Minggu, dengan nilai total sekitar 55,7 miliar riyal. NCB akan menawarkan 0,739 saham baru untuk setiap saham Samba, di batas bawah rasio 0,736-0, 787 yang ditetapkan bank-bank saat menandatangani perjanjian kerangka kerja awal pada Juni. Penawaran ini merupakan premi 3,5% dari harga penutupan Samba pada 8 Oktober sebesar 27,50 riyal dan sekitar 24% lebih tinggi dari level perdagangan saham sebelum pembicaraan diumumkan. Bloomberg News pertama kali melaporkan pembicaraan merger tersebut. Bank baru ini akan memiliki total aset lebih dari $220 miliar, menjadikannya pemberi pinjaman terbesar ketiga di kawasan Teluk. Kapitalisasi pasar entitas ini sebesar $46 miliar hampir menyamai Qatar National Bank QPSC, yang masih menjadi pemberi pinjaman terbesar di Timur Tengah dengan aset sekitar $268 miliar."""
+    # result = summarizer(ARTICLE, do_sample=False)
+
+    # print(result)
+
+
+if __name__ == '__main__':
+    main()
+
+
+# ==================================================== #
+# OLD
+
 # from langchain.text_splitter import RecursiveCharacterTextSplitter
 # from langchain_openai import OpenAIEmbeddings
 # from langchain_chroma import Chroma
@@ -47,7 +158,7 @@
 #         df = pd.read_csv(csv_path)
         
 #         # Validate required columns
-#         required_columns = ['Date', 'Title', 'Link', 'Text']
+#         required_columns = ['date', 'title', 'url', 'text']
 #         missing_columns = [
 #             col for col in required_columns if col not in df.columns
 #         ]
@@ -56,11 +167,11 @@
 #             raise ValueError(f'Missing required columns: {missing_columns}')
         
 #         # Clean data
-#         df = df.dropna(subset=['Date', 'Title', 'Text'])
-#         df['Date'] = df['Date'].astype(str)
-#         df['Title'] = df['Title'].astype(str)
-#         df['Text'] = df['Text'].astype(str)
-#         df['Link'] = df['Link'].astype(str)
+#         df = df.dropna(subset=['date', 'title', 'text'])
+#         df['date'] = df['date'].astype(str)
+#         df['title'] = df['title'].astype(str)
+#         df['text'] = df['text'].astype(str)
+#         df['url'] = df['url'].astype(str)
         
 #         print(f'Loaded {len(df)} news articles')
 #         return df
@@ -71,17 +182,17 @@
         
 #         for idx, row in df.iterrows():
 #             # Combine title and text for better context
-#             content = f'Title: {row['Title']}\n\nContent: {row['Text']}'
+#             content = f'title: {row['title']}\n\nContent: {row['text']}'
             
 #             # Create document with metadata
 #             doc = Document(
 #                 page_content=content,
 #                 metadata={
-#                     'date': row['Date'],
-#                     'title': row['Title'],
-#                     'link': row['Link'],
+#                     'date': row['date'],
+#                     'title': row['title'],
+#                     'link': row['url'],
 #                     'doc_id': idx,
-#                     'content_length': len(row['Text'])
+#                     'content_length': len(row['text'])
 #                 }
 #             )
 #             documents.append(doc)
@@ -279,8 +390,8 @@
 #     for i, result in enumerate(search_result, 1):
 #         print(f'{i}. {result['title']}')
 #         print(f'   Similarity Score: {result['similarity_score']:.4f}')
-#         print(f'   Date: {result['date']}')
-#         print(f'   Link: {result['link']}')
+#         print(f'   date: {result['date']}')
+#         print(f'   url: {result['link']}')
 #         print()
     
 #     # Example: Add new documents to existing collection

@@ -46,11 +46,19 @@ class WebScraper():
 
         return self.data
 
-    def get_csv(self, file_name='dataset.csv') -> bool:
+    def get_csv(self, file_name: str = None) -> bool:
         """Return data in csv format
 
         Return True if succeeded, False otherwise
         """
+
+        # Create file name based on lastest date
+        if not file_name:
+            file_name = (
+                self.start_date.strftime('%Y-%m-%d')
+                + '_' + str(self.days_period) + 'p.csv'
+            )
+
 
         # Check directory existence
         if os.path.isdir(self.data_dir):
@@ -217,7 +225,7 @@ def main():
     os.makedirs(data_dir, exist_ok=True)
 
     start_date = datetime.now()
-    days_period = 7
+    days_period = 90
 
     Scraper = WebScraper(
         start_date=start_date,
@@ -226,7 +234,9 @@ def main():
     )
     Scraper.scrap_urls()
     Scraper.scrap_from_urls()
-    print(Scraper.get_dataframe())
+    # print(Scraper.get_dataframe())
+    Scraper.get_csv()
+
 
 if __name__ == '__main__':
     main()

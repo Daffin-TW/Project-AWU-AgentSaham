@@ -8,3 +8,6 @@ langchain_chroma==0.2.4
 langgraph-0.4.8
 chromadb==1.0.12
 beautifulsoup4==4.13.4
+sentence-transformers==4.1.0
+langchain-huggingface==0.3.0
+transformers==4.52.4
