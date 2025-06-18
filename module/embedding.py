@@ -2,10 +2,10 @@
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 from langchain.schema import Document
 from langchain_chroma import Chroma
-from transformers import pipeline
+# from transformers import pipeline
 import pandas as pd
 import os
 
@@ -17,15 +17,19 @@ class ChromaEmbeddings():
         chunk_overlap=200,
         model='Qwen/Qwen3-Embedding-0.6B',
         persist_directory='./chroma_db',
-        collection_name='stock_news'
+        collection_name='stock_news',
+        device=0
     ):
         # Construct attributes
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.persist_directory = persist_directory
         self.collection_name = collection_name
+        self.device = device
 
-        self.embeddings = HuggingFaceEmbeddings(model=model, device=1)
+        self.embeddings = self.load_embedding_model(
+            model=model
+        )
         
         # Initialize text splitter for large documents
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -34,6 +38,15 @@ class ChromaEmbeddings():
             length_function=len,
         )
     
+    def load_embedding_model(self, model: str):
+        print(f'Loading {model} model...')
+
+        return HuggingFaceEmbeddings(
+            model=model,
+            model_kwargs={'device': self.device},
+            show_progress=True
+        )
+
     def load_csv_data(self, csv_path: str) -> pd.DataFrame:
         """Load stock news data from CSV file"""
 
@@ -115,6 +128,8 @@ class ChromaEmbeddings():
     ):
         """Complete pipeline to build the embedding system"""
 
+        print('Chroma Embeddings building...')
+        
         # Try to load existing collection first
         if not force_rebuild and self.load_existing_vectorstore():
             print('Using existing ChromaDB collection')
@@ -159,6 +174,39 @@ class ChromaEmbeddings():
             print(f"Could not load existing ChromaDB collection: {e}")
             return False
 
+    def similarity_search_metadata_filter(
+            self,
+            query: str,
+            k=5, 
+            metadata_filter: dict[str, any] = None
+        ) -> list[dict[str, any]]:
+        """Search for similar documents with metadata filtering"""
+
+        if not self.vectorstore:
+            raise ValueError('Embedding system not built yet.')
+        
+        # Perform similarity search with metadata filter
+        if metadata_filter:
+            results = self.vectorstore.similarity_search_with_score(
+                query, k=k, filter=metadata_filter
+            )
+        else:
+            results = self.vectorstore.similarity_search_with_score(query, k=k)
+        
+        # Format results
+        formatted_results = []
+        for doc, score in results:
+            formatted_results.append({
+                'content': doc.page_content,
+                'metadata': doc.metadata,
+                'similarity_score': score,
+                'date': doc.metadata.get('date', 'N/A'),
+                'title': doc.metadata.get('title', 'N/A'),
+                'url': doc.metadata.get('url', 'N/A')
+            })
+        
+        return formatted_results
+
 
 def main():
     # Initialize Pathing
@@ -180,7 +228,19 @@ def main():
         csv_path, split_documents=True, force_rebuild=False
     )
     
+    # # Example searches
+    # print('\n=== Example Searches ===')
+    # query = 'Peningkatan dan penurunan bitcoin atau crypto'
+    # search_result = Embeddings.similarity_search_metadata_filter(query, k=5)
+    # print('\nrelated news:')
 
+    # for i, result in enumerate(search_result, 1):
+    #     print(f'{i}. {result['title']}')
+    #     print(f'   Similarity Score: {result['similarity_score']:.4f}')
+    #     print(f'   Date: {result['date']}')
+    #     print(f'   Url: {result['url']}')
+    #     print(f'   Content:\n{result['content']}')
+    #     print()
 
 
     # print('Load Model...')
