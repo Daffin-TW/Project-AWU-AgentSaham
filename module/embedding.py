@@ -31,8 +31,8 @@ class ChromaEmbeddings():
         
         # Initialize text splitter for large documents
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
             length_function=len,
         )
     
@@ -76,7 +76,7 @@ class ChromaEmbeddings():
         
         for idx, row in df.iterrows():
             # Combine title and text for better context
-            content = f'Title: {row['title']}\n\nContent: {row['text']}'
+            content = f'Title: {row['title']}\nContent: {row['text']}'
             
             # Create document with metadata
             doc = Document(
@@ -244,19 +244,19 @@ def main():
         csv_path, split_documents=True, force_rebuild=False
     )
     
-    # # Example searches
-    # print('\n=== Example Searches ===')
-    # query = 'Peningkatan dan penurunan bitcoin atau crypto'
-    # search_result = Embeddings.similarity_search_metadata_filter(query, k=5)
-    # print('\nrelated news:')
+    # Example searches
+    print('\n=== Example Searches ===')
+    query = 'Peningkatan dan penurunan bitcoin atau crypto'
+    search_result = Embeddings.similarity_search_metadata_filter(query, k=5)
+    print('\nrelated news:')
 
-    # for i, result in enumerate(search_result, 1):
-    #     print(f'{i}. {result['title']}')
-    #     print(f'   Similarity Score: {result['similarity_score']:.4f}')
-    #     print(f'   Date: {result['date']}')
-    #     print(f'   Url: {result['url']}')
-    #     print(f'   Content:\n{result['content']}')
-    #     print()
+    for i, result in enumerate(search_result, 1):
+        print(f'{i}. {result['title']}')
+        print(f'   Similarity Score: {result['similarity_score']:.4f}')
+        print(f'   Date: {result['date']}')
+        print(f'   Url: {result['url']}')
+        print(f'   Content:\n{result['content']}')
+        print()
 
 
     # print('Load Model...')
