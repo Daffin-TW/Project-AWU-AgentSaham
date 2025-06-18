@@ -15,6 +15,7 @@ class ChromaEmbeddings():
         self,
         chunk_size=1000,
         chunk_overlap=200,
+        model='Qwen/Qwen3-Embedding-0.6B',
         persist_directory='./chroma_db',
         collection_name='stock_news'
     ):
@@ -23,16 +24,19 @@ class ChromaEmbeddings():
         self.chunk_overlap = chunk_overlap
         self.persist_directory = persist_directory
         self.collection_name = collection_name
+
+        self.embeddings = HuggingFaceEmbeddings(model=model, device=1)
         
         # Initialize text splitter for large documents
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
             length_function=len,
         )
     
-    # Load stock news data from CSV file
     def load_csv_data(self, csv_path: str) -> pd.DataFrame:
+        """Load stock news data from CSV file"""
+
         df = pd.read_csv(csv_path)
         
         # Validate required columns
@@ -53,16 +57,129 @@ class ChromaEmbeddings():
         
         print(f'Loaded {len(df)} news articles')
         return df
+    
+    def prepare_documents(self, df: pd.DataFrame) -> list[Document]:
+        """Convert DataFrame to LangChain Document objects"""
+        
+        documents = []
+        
+        for idx, row in df.iterrows():
+            # Combine title and text for better context
+            content = f'Title: {row['title']}\n\nContent: {row['text']}'
+            
+            # Create document with metadata
+            doc = Document(
+                page_content=content,
+                metadata={
+                    'date': row['date'],
+                    'title': row['title'],
+                    'url': row['url'],
+                    'doc_id': idx,
+                    'content_length': len(row['text'])
+                }
+            )
+            documents.append(doc)
+        
+        return documents
+    
+    def split_documents(self, documents: list[Document]) -> list[Document]:
+        """Split large documents into smaller chunks"""
+
+        split_docs = self.text_splitter.split_documents(documents)
+        print(f'Split {len(documents)} documents into {len(split_docs)} chunks')
+        return split_docs
+
+    def create_embeddings(self, documents: list[Document]) -> Chroma:
+        """Create embeddings and build ChromaDB vector store"""
+
+        print('Creating embeddings with ChromaDB...')
+        
+        vectorstore = Chroma.from_documents(
+            documents=documents,
+            embedding=self.embeddings,
+            persist_directory=self.persist_directory,
+            collection_name=self.collection_name
+        )
+        
+        print(
+            f'Created embeddings for {len(documents)} '
+            'document chunks in ChromaDB'
+        )
+        return vectorstore
+    
+    def build_embedding_system(
+        self,
+        csv_path: str,
+        split_documents: bool = True,
+        force_rebuild: bool = False
+    ):
+        """Complete pipeline to build the embedding system"""
+
+        # Try to load existing collection first
+        if not force_rebuild and self.load_existing_vectorstore():
+            print('Using existing ChromaDB collection')
+            return
+        
+        df = self.load_csv_data(csv_path)
+        documents = self.prepare_documents(df)
+        self.documents = documents
+        
+        # Split documents if requested
+        if split_documents:
+            documents = self.split_documents(documents)
+        
+        # Create embeddings and vector store
+        self.vectorstore = self.create_embeddings(documents)
+        
+        print('Embedding system built successfully with ChromaDB!')
+
+    def load_existing_vectorstore(self) -> bool:
+        """Load existing ChromaDB vector store if it exists"""
+
+        try:
+            self.vectorstore = Chroma(
+                persist_directory=self.persist_directory,
+                embedding_function=self.embeddings,
+                collection_name=self.collection_name
+            )
+            
+            # Check if collection has data
+            collection_count = len(self.vectorstore.get()['ids'])
+            if collection_count > 0:
+                print(
+                    'Loaded existing ChromaDB collection with '
+                    f'{collection_count} documents'
+                )
+                return True
+            else:
+                print("ChromaDB collection exists but is empty")
+                return False
+                
+        except Exception as e:
+            print(f"Could not load existing ChromaDB collection: {e}")
+            return False
+
 
 def main():
+    # Initialize Pathing
     file_path = os.path.abspath(__file__)
     folder_path = os.path.dirname(file_path)
     ws_path = os.path.dirname(folder_path)
-
     data_dir = os.path.join(ws_path, 'dataset')
-    os.makedirs(data_dir, exist_ok=True)
+    db_path = os.path.join(ws_path, 'chroma_db')
+    csv_path = os.path.join(data_dir, '2025-06-17_90p.csv')
 
-    Embeddings = ChromaEmbeddings()
+    # Model building
+    Embeddings = ChromaEmbeddings(
+        chunk_size=1000,
+        chunk_overlap=200,
+        persist_directory=db_path,
+        collection_name='stock_news'
+    )
+    Embeddings.build_embedding_system(
+        csv_path, split_documents=True, force_rebuild=False
+    )
+    
 
 
 
