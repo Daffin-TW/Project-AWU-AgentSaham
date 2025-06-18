@@ -2,10 +2,8 @@
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-# from sentence_transformers import SentenceTransformer
 from langchain.schema import Document
 from langchain_chroma import Chroma
-# from transformers import pipeline
 import pandas as pd
 import os
 
@@ -206,6 +204,24 @@ class ChromaEmbeddings():
             })
         
         return formatted_results
+    
+    def get_all_documents_metadata(self) -> list[dict[str, any]]:
+        """Get metadata for all documents in the collection"""
+        
+        if not self.vectorstore:
+            raise ValueError('Vector store not initialized')
+        
+        # Get all documents from ChromaDB
+        all_docs = self.vectorstore.get()
+        
+        metadata_list = []
+        for i, metadata in enumerate(all_docs['metadatas']):
+            metadata_list.append({
+                'id': all_docs['ids'][i],
+                'metadata': metadata
+            })
+        
+        return metadata_list
 
 
 def main():
