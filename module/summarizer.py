@@ -33,10 +33,8 @@ class ArticleSummarizer():
         """Summarize vectorstores search results"""
 
         for doc in documents:
-            print(doc['content'])
             doc['content'] = self.model.invoke(doc['content'])
             doc['metadata']['content_length'] = len(doc['content'])
-            print()
             
         return documents
 
