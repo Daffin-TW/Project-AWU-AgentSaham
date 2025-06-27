@@ -2,3 +2,4 @@
 from .summarizer import ArticleSummarizer
 from .embedding import ChromaEmbeddings
 from .news_scrapper import WebScraper
+from .llm_agent import AIAgent

@@ -14,8 +14,8 @@ from langchain.chains import create_retrieval_chain
 from langchain_openai import ChatOpenAI
 
 # Import the embedding system and summarizer from the previous file
-from embedding import ChromaEmbeddings
-from summarizer import ArticleSummarizer
+from module import ChromaEmbeddings
+from module import ArticleSummarizer
 
 
 class AIAgent:
@@ -84,8 +84,9 @@ class AIAgent:
             
             # Create context-aware retriever
             contextualize_q_system_prompt = """
-                Berdasarkan pertanyaan terbaru pengguna buatlah pertanyaan
-                mandiri yang dapat dipahami tanpa perlu merujuk pada 
+                Berdasarkan riwayat obrolan dan pertanyaan terbaru pengguna yang 
+                mungkin merujuk pada konteks dalam riwayat obrolan, buatlah 
+                pertanyaan mandiri yang dapat dipahami tanpa perlu merujuk pada 
                 riwayat obrolan. Jangan menjawab pertanyaan tersebut, cukup 
                 reformulasikan jika diperlukan, dan jika tidak, kembalikan 
                 pertanyaan tersebut apa adanya.
@@ -167,6 +168,7 @@ class AIAgent:
     # Main chat interface for the AI agent
     def chat(
             self, user_input: str,
+            chat_history, 
             use_rag: bool = True
         ) -> dict[str, any]:
         try:
@@ -174,6 +176,7 @@ class AIAgent:
                 # Use RAG chain for enhanced responses
                 response = self.rag_chain.invoke({
                     'input': user_input,
+                    'chat_history': chat_history
                 })
                 
                 answer = response['answer']

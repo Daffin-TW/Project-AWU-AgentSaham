@@ -7,12 +7,16 @@ import os
 
 # Import module from custom package
 from module import WebScraper
+from module import AIAgent
 
 
 # Initialize pathing
 ws_path = os.getcwd()
 data_dir = os.path.join(ws_path, 'dataset')
 db_path = os.path.join(ws_path, 'chroma_db')
+
+# Initialize embedding system
+collection_name='stock_news'
 
 # Page configuration
 st.set_page_config(
@@ -105,18 +109,49 @@ st.markdown("""
 chat_container = st.container()
 
 with chat_container:
-    with st.chat_message('user'):
-        st.markdown('Hello')
+    for message in ss.messages:
+        with st.chat_message(message['role']):
+            st.markdown(message['content'])
 
 # Chat input
 msg = (
-    'Tanyakan apa saja kepada saya atau analisis data'
+    'Tanyakan apa saja kepada saya atau analisis data '
     + 'berita yang telah Anda kumpulkan...'
 )
 
 
 if prompt := st.chat_input(msg):
-    pass
+    # Add user message
+    ss.messages.append({'role': 'user', 'content': prompt})
+    
+    with st.chat_message('user'):
+        st.markdown(prompt)
+    
+    # Generate AI response
+    with st.chat_message('assistant'):
+        with st.spinner('Thinking...'):
+            Agent = AIAgent(
+                model_name=model_type,
+                persist_directory=db_path,
+                collection_name=collection_name,
+                max_tokens=max_tokens
+            )
+
+            result = Agent.chat(prompt, ss.messages)
+            response = result['response']
+
+        st.markdown(response)
+        
+        for i, elem in enumerate(result['sources']): 
+            msg = f'{i}: {elem['title']} - {elem['link']}'
+            st.markdown(msg)
+
+    # Add assistant response to chat history
+    ss.messages.append({'role': 'assistant', 'content': response})
+
+    # Delete old response
+    if len(ss.messages) > 10:
+        ss.messages = ss.messages[:9]
 
 
 # Quick actions
