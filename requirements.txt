@@ -1,0 +1,41 @@
+# ============================================================
+# AWU Stock AI Agent — Python Dependencies
+# ============================================================
+# Install with:  pip install -r requirements.txt
+# Python         : >= 3.10
+# ============================================================
+
+# --- Web UI ---
+streamlit==1.45.1
+
+# --- Environment & Configuration ---
+python-dotenv==1.1.0
+
+# --- LangChain Core ---
+langchain==0.3.25
+langchain-community==0.3.25
+
+# --- LLM Integration (OpenAI) ---
+langchain-openai==0.3.23
+
+# --- Vector Store ---
+langchain-chroma==0.2.4
+chromadb==1.0.12
+
+# --- Embedding Model (Local / HuggingFace) ---
+langchain-huggingface==0.3.0
+sentence-transformers==4.1.0
+transformers==4.52.4
+
+# --- Agent Orchestration ---
+langgraph==0.4.8
+
+# --- Web Scraping ---
+beautifulsoup4==4.13.4
+requests
+
+# --- Data Processing ---
+pandas
+
+# --- Development & Notebook ---
+ipykernel==6.29.5
